@@ -1,85 +1,209 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Countdown Timer with Hidden Control Buttons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anta&display=swap" rel="stylesheet">
+    <title>Timer and Score Controls with Detailed Settings</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Anta", sans-serif;
+            font-weight: bold;
+            font-style: normal;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .main-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            max-width: 600px;
+        }
+        .button-container, .timer-settings {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 80%;
+            max-width: 600px;
+
+        }
+        .score, #timer {
+            font-size: 39px;
+/*            background-color: #fff;*/
+            color: #fff;
+            padding: 0px;
+            border-radius: 8px;
+/*            border: 2px solid #000;*/
+            text-align: center;
+            width: 150px;
+            margin: -30px;
+        }
+        .button-group, .control-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: bold;
+            color: #fff;
+        }
+        .button, #setTimerButton {
+            font-size: 16px;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .timer-input {
+            font-size: 16px;
+            padding: 5px;
+            margin: 5px;
+            width: 80px;
+            text-align: center;
+        }
+        .timer-settings {
+            flex-direction: column;
+            padding: 20px 0;
+        }
+        .timer-label {
+            font-weight: bold;
+            margin: 10px 0;
+            
+        }
+        .timer-period-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            background-color: #f0f0f0;
+            color: #fff;
+            margin-top: -200px;
+        }
+
+        /* Add styles for start and stop buttons */
+        #startButton {
+        background-color: green;
+        color: white;
+        border: none;
+        }
+        #pauseButton {
+            background-color: red;
+            color: white;
+            border: none;
         }
         #timer {
-            font-size: 40px;
-            background-color: #000;
-            color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .controls {
-            display: none; /* Hide controls when page is used in OBS */
-        }
-        @media screen and (min-width: 800px) { /* Assuming OBS Browser Source won't have a screen width of 800px */
-            .controls {
-                display: block; /* Show controls for screens wider than 800px, like a normal browser window */
-            }
-            .button {
-                font-size: 20px;
-                padding: 10px 20px;
-                margin: 5px;
-                cursor: pointer;
-            }
+            /* Existing styles */
+            margin: 0px 0; /* Adjust margin as necessary */
         }
     </style>
 </head>
 <body>
 
-<div id="timer">
-    00:00
+<div class="button-container">
+    <div class="button-group">
+        <div class="team-label">Home</div>
+        <button class="button" onclick="changeScore(1, 3)">+3</button>
+        <button class="button" onclick="changeScore(1, 2)">+2</button>
+        <button class="button" onclick="changeScore(1, 1)">+1</button>
+        <button class="button" onclick="changeScore(1, -1)">-1</button>
+    </div>
+    <div class="control-buttons">
+        <button class="button" id="startButton">Start</button>
+        <button class="button" id="pauseButton">Stop</button>
+        <div class="timer-label">Set Timer:</div>
+        <input id="timerMinutes" class="timer-input" type="number" min="0" placeholder="Minutes" value="20" /> <!-- Set default value to 20 -->
+        <input id="timerSeconds" class="timer-input" type="number" min="0" max="59" placeholder="Seconds" value="0" /> <!-- Ensure default is 0 -->
+        <button id="setTimerButton">Set Timer</button>
+        <input id="periodInput" class="timer-input" type="number" value="1" min="1" max="2" /> <!-- Period input -->
+        <button id="setPeriodButton">Set Period</button>
+    </div>
+    <div class="button-group">
+        <div class="team-label">Away</div>
+        <button class="button" onclick="changeScore(2, 3)">+3</button>
+        <button class="button" onclick="changeScore(2, 2)">+2</button>
+        <button class="button" onclick="changeScore(2, 1)">+1</button>
+        <button class="button" onclick="changeScore(2, -1)">-1</button>
+    </div>
 </div>
-<div class="controls">
-    <button class="button" id="startButton">Start</button>
-    <button class="button" id="pauseButton">Pause</button>
+
+<div class="main-container">
+    <div id="score1" class="score">0</div>
+    <div id="timer" class="score">00:00</div>
+    <div id="score2" class="score">0</div>
+</div>
+
+<div class="timer-period-container">
+    <div class="timer-label">Period: <span id="periodDisplay">1</span></div>
 </div>
 
 <script>
-    var countDownDate;
-    var x;
-    var isPaused = true;
+    let countdown;
+    let timeRemaining; // Will be set based on inputs
+    let timerRunning = false;
+    let scores = [0, 0];
+     let period = 1; // Initialize period value
 
-    function startTimer(duration) {
-        if (!isPaused) return;
-        isPaused = false;
-        countDownDate = new Date().getTime() + duration;
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeRemaining / 60000);
+        const seconds = Math.floor((timeRemaining % 60000) / 1000);
+        document.getElementById("timer").textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
 
-        x = setInterval(function() {
-            if (isPaused) return;
+    function setTimer() {
+        const minutes = parseInt(document.getElementById("timerMinutes").value) || 0;
+        const seconds = parseInt(document.getElementById("timerSeconds").value) || 0;
+        timeRemaining = (minutes * 60 + seconds) * 1000;
+        updateTimerDisplay();
+        if (timerRunning) {
+            clearInterval(countdown);
+            startTimer();
+        }
+    }
 
-            var now = new Date().getTime();
-            var distance = countDownDate - now;
-            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            document.getElementById("timer").innerHTML = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
-
-            if (distance < 0) {
-                clearInterval(x);
-                document.getElementById("timer").innerHTML = "EXPIRED";
-                isPaused = true;
+    function startTimer() {
+        if (timerRunning) return;
+        timerRunning = true;
+        countdown = setInterval(() => {
+            timeRemaining -= 1000;
+            if (timeRemaining < 0) {
+                clearInterval(countdown);
+                timerRunning = false;
+                document.getElementById("timer").textContent = "0:00";
+            } else {
+                updateTimerDisplay();
             }
         }, 1000);
     }
 
     function pauseTimer() {
-        isPaused = true;
+        clearInterval(countdown);
+        timerRunning = false;
     }
 
-    document.getElementById("startButton").onclick = function() { startTimer(10 * 60000); };
-    document.getElementById("pauseButton").onclick = function() { pauseTimer(); };
+    function setPeriod() {
+        const periodValue = parseInt(document.getElementById("periodInput").value) || 1;
+        period = periodValue; // Update the period with the new value
+        document.getElementById("periodDisplay").textContent = period; // Update the display
+    }
+
+
+    function changeScore(team, amount) {
+        const index = team - 1;
+        scores[index] = Math.max(0, scores[index] + amount);
+        document.getElementById(`score${team}`).textContent = scores[index];
+    }
+
+    document.getElementById("setTimerButton").addEventListener("click", setTimer);
+    document.getElementById("startButton").addEventListener("click", startTimer);
+    document.getElementById("pauseButton").addEventListener("click", pauseTimer);
+    document.getElementById("setPeriodButton").addEventListener("click", setPeriod);
+
+
+    // Initialize display
+    setTimer(); // Sets timer to inputs' default value or 0
+    setPeriod(); // Sets period to input's default value or 1
 </script>
 
 </body>
